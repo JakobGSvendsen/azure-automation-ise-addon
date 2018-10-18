@@ -618,6 +618,7 @@ namespace AutomationISE
 
                 if (HostObject == null)
                 {
+                    IDEComboBox.Items.Clear();
                     IDEEditorLabel.Visibility = Visibility.Visible;
                     IDEComboBox.Visibility = Visibility.Visible;
                     String editor = Properties.Settings.Default["Editor"].ToString();
@@ -898,7 +899,7 @@ namespace AutomationISE
                             // Use RunAs connection in account to authenticate with Azure.
                             if (HostObject != null)
                             {
-                                HostObject.CurrentPowerShellTab.Invoke("$RunAsConnection = Get-AutomationConnection -Name AzureRunAsConnection;try {$Login=Add-AzureRmAccount -ServicePrincipal -TenantId $RunAsConnection.TenantId -ApplicationId $RunAsConnection.ApplicationId -CertificateThumbprint $RunAsConnection.CertificateThumbprint -ErrorAction Stop}catch{Sleep 10;$Login=Add-AzureRmAccount -ServicePrincipal -TenantId $RunAsConnection.TenantId -ApplicationId $RunAsConnection.ApplicationId -CertificateThumbprint $RunAsConnection.CertificateThumbprint};Select-AzureRmSubscription -SubscriptionId $RunAsConnection.SubscriptionID");
+                                HostObject.CurrentPowerShellTab.Invoke("$RunAsConnection = Get-AutomationConnection -Name AzureRunAsConnection;try {$Login=Add-AzureRmAccount -ServicePrincipal -TenantId $RunAsConnection.TenantId -ApplicationId $RunAsConnection.ApplicationId -CertificateThumbprint $RunAsConnection.CertificateThumbprint -ErrorAction Stop}catch{Sleep 10;$Login=Add-AzureRmAccount -ServicePrincipal -TenantId $RunAsConnection.TenantId -ApplicationId $RunAsConnection.ApplicationId -CertificateThumbprint $RunAsConnection.CertificateThumbprint};Set-AzureRmContext -SubscriptionId $RunAsConnection.SubscriptionID");
                             }
                         }
                     }
@@ -1570,6 +1571,14 @@ namespace AutomationISE
                 {
                     var codeValue = VSCodeKey.GetValue("").ToString();
                     return (codeValue.Substring(0, codeValue.IndexOf('%') - 1).Replace("\"", string.Empty).Trim());
+                }
+                using (Microsoft.Win32.RegistryKey VSCodeCurrentUserKey = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"SOFTWARE\Classes\Applications\Code.exe\shell\open\command"))
+                {
+                    if (VSCodeCurrentUserKey != null)
+                    {
+                        var codeValue = VSCodeCurrentUserKey.GetValue("").ToString();
+                        return (codeValue.Substring(0, codeValue.IndexOf('%') - 1).Replace("\"", string.Empty).Trim());
+                    }
                 }
                 return null;
             }
@@ -2774,7 +2783,7 @@ namespace AutomationISE
                     }
                     else
                     {
-                        DeleteRunbookDialog deleteOptionsWindow = new DeleteRunbookDialog();
+                        DeleteRunbookDialog deleteOptionsWindow = new DeleteRunbookDialog(runbook.Name);
                         bool? result = deleteOptionsWindow.ShowDialog();
                         if (result.HasValue && result.Value)
                         {
@@ -2850,7 +2859,7 @@ namespace AutomationISE
                     }
                     else
                     {
-                        DeleteConfigurationDialog deleteOptionsWindow = new DeleteConfigurationDialog();
+                        DeleteConfigurationDialog deleteOptionsWindow = new DeleteConfigurationDialog(configuration.Name);
                         bool? result = deleteOptionsWindow.ShowDialog();
                         if (result.HasValue && result.Value)
                         {
@@ -3479,8 +3488,11 @@ namespace AutomationISE
 
         private void IDEComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            Properties.Settings.Default.Editor = IDEComboBox.SelectedItem.ToString();
-            Properties.Settings.Default.Save();
+            if (IDEComboBox.HasItems)
+            {
+                Properties.Settings.Default.Editor = IDEComboBox.SelectedItem.ToString();
+                Properties.Settings.Default.Save();
+            }
         }
 
         private void AzureEnvironmentComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
